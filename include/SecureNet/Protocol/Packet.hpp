@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include <SecureNet/Common/Types.hpp>
 #include <SecureNet/Protocol/PacketStream.hpp>
 
@@ -15,30 +17,44 @@ namespace SecureNet
         };
     }
 
-    struct PacketHeader
+    enum class PacketType : u8
+    {
+        ConnectRequest,
+        ConnectResponse,
+        Disconnect,
+        Ping,
+        Pong,
+        Message,
+        MessageFragment
+    };
+
+    struct Packet
     {
         PacketFlags flags;
-        u32 sequenceID;
-        u32 ackSequence;
-        u32 ackBitfield;
-        u8  channelID;
-        u16 length;
+        u32 sequenceID;     /* Exists only when isSequenced() */
+        u32 ackSequence;    /* Exists only when isReliable() */
+        u32 ackBitfield;    /* Exists only when isReliable() */
+        PacketType type;
 
+        [[nodiscard]]
         constexpr bool isUnreliable() const
         {
             return flags == 0;
         }
 
+        [[nodiscard]]
         constexpr bool isSequenced() const
         {
             return flags & PacketFlag::Sequenced;
         }
 
+        [[nodiscard]]
         constexpr bool isReliable() const
         {
             return (flags & PacketFlag::Reliable) == PacketFlag::Reliable;
         }
 
+        [[nodiscard]]
         bool serialize(PacketStreamWriter& writer) const
         {
             if (!writer.write(flags))
@@ -56,14 +72,10 @@ namespace SecureNet
                 return false;
             }
 
-            if (!writer.write(channelID) || !writer.write(length))
-            {
-                return false;
-            }
-
-            return true;
+            return writer.write(type);
         }
 
+        [[nodiscard]]
         bool deserialize(PacketStreamReader& reader)
         {
             if (!reader.read(flags))
@@ -80,13 +92,8 @@ namespace SecureNet
             {
                 return false;
             }
-
-            if (!reader.read(channelID) || !reader.read(length))
-            {
-                return false;
-            }
-
-            return true;
+            
+            return reader.read(type);
         }
     };
 }

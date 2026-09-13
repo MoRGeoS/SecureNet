@@ -6,4 +6,3 @@
 #include <SecureNet/Common/ByteSwap.hpp>
 
 #include <SecureNet/Protocol/PacketStream.hpp>
-#include <SecureNet/Protocol/PacketHeader.hpp>
